@@ -1,4 +1,4 @@
-import { winCombinations } from '../App.jsx';
+import { winCombinations } from '../constants.js';
 
 const GameBoard = ({ board, winner, handleCellClick }) => {
   return (

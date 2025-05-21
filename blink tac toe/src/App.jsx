@@ -2,20 +2,7 @@ import { useState, useEffect } from 'react';
 import GameBoard from './components/GameBoard.jsx';
 import CategorySelector from './components/CategorySelector.jsx';
 import HelpModal from './components/HelpModal.jsx';
-
-
-const emojiCategories = {
-  Animals: ['🐶', '🐱', '🐰', '🦁', '🐼', '🐻'],
-  Food: ['🍎', '🍕', '🍔', '🍓', '🍉', '🍍'],
-  Sports: ['⚽', '🏀', '🏈', '🎾', '🏐', '🥊']
-};
-
-
-const winCombinations = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8], 
-  [0, 3, 6], [1, 4, 7], [2, 5, 8], 
-  [0, 4, 8], [2, 4, 6] 
-];
+import { emojiCategories, winCombinations } from './constants.js';
 
 const App = () => {
   const [board, setBoard] = useState(Array(9).fill(null));
@@ -27,13 +14,15 @@ const App = () => {
   const [showCategorySelector, setShowCategorySelector] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
 
-
+  
   useEffect(() => {
     const checkWinner = () => {
       for (const combo of winCombinations) {
         const [a, b, c] = combo;
         if (
           board[a] &&
+          board[b] &&
+          board[c] &&
           board[a].player === board[b].player &&
           board[a].player === board[c].player &&
           board[a].player
@@ -47,13 +36,12 @@ const App = () => {
     checkWinner();
   }, [board]);
 
-  // Get random emoji
+  
   const getRandomEmoji = (player) => {
     const category = playerCategories[player];
     const emojis = emojiCategories[category];
     return emojis[Math.floor(Math.random() * emojis.length)];
   };
-
 
   const handleCategorySelect = (player, category) => {
     setPlayerCategories((prev) => ({ ...prev, [player]: category }));
@@ -74,7 +62,7 @@ const App = () => {
     const newMoves = { ...playerMoves };
     const player = currentPlayer;
 
-    
+  
     if (playerMoves[player].length >= 3) {
       const oldestMove = playerMoves[player][0];
       if (oldestMove === index) return; 
@@ -104,7 +92,7 @@ const App = () => {
 
   return (
     <div className="app">
-      <h1>Blink Tac Toe</h1>
+      <h1>Tic Tac Toe</h1>
       <div className="status">
         <span>Player 1: {scores[1]} | Player 2: {scores[2]}</span>
         <button className="help-button" onClick={() => setShowHelp(true)}>

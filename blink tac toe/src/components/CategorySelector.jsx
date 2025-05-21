@@ -1,5 +1,7 @@
+import { emojiCategories } from '../constants.js';
+
 const CategorySelector = ({ player, onSelect }) => {
-  const categories = ['Animals', 'Food', 'Sports'];
+  const categories = Object.keys(emojiCategories);
 
   return (
     <div className="modal">

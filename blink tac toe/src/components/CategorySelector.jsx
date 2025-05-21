@@ -1,7 +1,9 @@
 import { emojiCategories } from '../constants.js';
+import useSound from '../hooks/useSound.js';
 
 const CategorySelector = ({ player, onSelect }) => {
   const categories = Object.keys(emojiCategories);
+  const playClick = useSound('/sounds/click.mp3');
 
   return (
     <div className="modal">
@@ -12,7 +14,10 @@ const CategorySelector = ({ player, onSelect }) => {
             <button
               key={category}
               className="category-button"
-              onClick={() => onSelect(player, category)}
+              onClick={() => {
+                onSelect(player, category);
+                playClick();
+              }}
             >
               {category}
             </button>

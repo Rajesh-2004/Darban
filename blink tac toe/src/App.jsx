@@ -3,6 +3,7 @@ import GameBoard from './components/GameBoard.jsx';
 import CategorySelector from './components/CategorySelector.jsx';
 import HelpModal from './components/HelpModal.jsx';
 import { emojiCategories, winCombinations } from './constants.js';
+import useSound from './hooks/useSound.js';
 
 const App = () => {
   const [board, setBoard] = useState(Array(9).fill(null));
@@ -13,6 +14,12 @@ const App = () => {
   const [scores, setScores] = useState({ 1: 0, 2: 0 });
   const [showCategorySelector, setShowCategorySelector] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
+
+  
+  const playPop = useSound('/sounds/pop.mp3');
+  const playWhoosh = useSound('/sounds/whoosh.mp3');
+  const playWin = useSound('/sounds/win.mp3');
+  const playClick = useSound('/sounds/click.mp3');
 
   
   useEffect(() => {
@@ -29,12 +36,13 @@ const App = () => {
         ) {
           setWinner(board[a].player);
           setScores((prev) => ({ ...prev, [board[a].player]: prev[board[a].player] + 1 }));
+          playWin(); 
           return;
         }
       }
     };
     checkWinner();
-  }, [board]);
+  }, [board, playWin]);
 
   
   const getRandomEmoji = (player) => {
@@ -43,6 +51,7 @@ const App = () => {
     return emojis[Math.floor(Math.random() * emojis.length)];
   };
 
+  
   const handleCategorySelect = (player, category) => {
     setPlayerCategories((prev) => ({ ...prev, [player]: category }));
     if (player === 1) {
@@ -52,6 +61,7 @@ const App = () => {
       setShowCategorySelector(false); 
       setCurrentPlayer(1);
     }
+    playClick(); 
   };
 
   
@@ -62,12 +72,13 @@ const App = () => {
     const newMoves = { ...playerMoves };
     const player = currentPlayer;
 
-  
+    
     if (playerMoves[player].length >= 3) {
       const oldestMove = playerMoves[player][0];
       if (oldestMove === index) return; 
       newBoard[oldestMove] = null; 
       newMoves[player].shift();
+      playWhoosh(); 
     }
 
     
@@ -78,6 +89,7 @@ const App = () => {
     setBoard(newBoard);
     setPlayerMoves(newMoves);
     setCurrentPlayer(player === 1 ? 2 : 1);
+    playPop(); 
   };
 
   
@@ -88,29 +100,30 @@ const App = () => {
     setWinner(null);
     setPlayerCategories({ 1: null, 2: null });
     setShowCategorySelector(true);
+    playClick(); 
   };
 
   return (
     <div className="app">
-      <h1>Tic Tac Toe</h1>
+      <h1 className="title">Blink Tac Toe</h1>
       <div className="status">
-        <span>Player 1: {scores[1]} | Player 2: {scores[2]}</span>
-        <button className="help-button" onClick={() => setShowHelp(true)}>
+        <span className="score">Player 1: {scores[1]} | Player 2: {scores[2]}</span>
+        <button className="help-button" onClick={() => { setShowHelp(true); playClick(); }}>
           Help
         </button>
       </div>
-      <p>Current Turn: Player {currentPlayer}</p>
+      <p className={`turn-indicator player-${currentPlayer}`}>Turn: Player {currentPlayer}</p>
       <GameBoard board={board} winner={winner} handleCellClick={handleCellClick} />
       {winner && (
         <div className="win-message">
-          <p>Player {winner} Wins!</p>
+          <p className="win-text">Player {winner} Wins!</p>
           <button className="play-again-button" onClick={resetGame}>
             Play Again
           </button>
         </div>
       )}
       {showCategorySelector && <CategorySelector player={currentPlayer} onSelect={handleCategorySelect} />}
-      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showHelp && <HelpModal onClose={() => { setShowHelp(false); playClick(); }} />}
     </div>
   );
 };

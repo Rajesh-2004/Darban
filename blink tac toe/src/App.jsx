@@ -15,15 +15,22 @@ const App = () => {
   const [showCategorySelector, setShowCategorySelector] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
 
-  
+  // Sound effects
   const playPop = useSound('/sounds/pop.mp3');
   const playWhoosh = useSound('/sounds/whoosh.mp3');
   const playWin = useSound('/sounds/win.mp3');
   const playClick = useSound('/sounds/click.mp3');
+  const playBackground = useSound('/sounds/background.mp3', { loop: true, volume: 0.3 });
 
-  
+  // Play background music on load
+  useEffect(() => {
+    playBackground();
+  }, [playBackground]);
+
+  // Check for winner
   useEffect(() => {
     const checkWinner = () => {
+      if (winner) return;
       for (const combo of winCombinations) {
         const [a, b, c] = combo;
         if (
@@ -36,35 +43,35 @@ const App = () => {
         ) {
           setWinner(board[a].player);
           setScores((prev) => ({ ...prev, [board[a].player]: prev[board[a].player] + 1 }));
-          playWin(); 
+          playWin();
           return;
         }
       }
     };
     checkWinner();
-  }, [board, playWin]);
+  }, [board, winner, playWin]);
 
-  
+  // Get random emoji
   const getRandomEmoji = (player) => {
     const category = playerCategories[player];
     const emojis = emojiCategories[category];
     return emojis[Math.floor(Math.random() * emojis.length)];
   };
 
-  
+  // Handle category selection
   const handleCategorySelect = (player, category) => {
     setPlayerCategories((prev) => ({ ...prev, [player]: category }));
     if (player === 1) {
-      setShowCategorySelector(true); 
+      setShowCategorySelector(true); // Show for Player 2
       setCurrentPlayer(2);
     } else {
-      setShowCategorySelector(false); 
+      setShowCategorySelector(false); // Start game
       setCurrentPlayer(1);
     }
-    playClick(); 
+    playClick();
   };
 
-  
+  // Handle cell click
   const handleCellClick = (index) => {
     if (board[index] || winner || !playerCategories[1] || !playerCategories[2]) return;
 
@@ -72,16 +79,16 @@ const App = () => {
     const newMoves = { ...playerMoves };
     const player = currentPlayer;
 
-    
+    // Vanishing rule
     if (playerMoves[player].length >= 3) {
       const oldestMove = playerMoves[player][0];
-      if (oldestMove === index) return; 
-      newBoard[oldestMove] = null; 
+      if (oldestMove === index) return;
+      newBoard[oldestMove] = null;
       newMoves[player].shift();
-      playWhoosh(); 
+      playWhoosh();
     }
 
-    
+    // Place new emoji
     const emoji = getRandomEmoji(player);
     newBoard[index] = { emoji, player };
     newMoves[player].push(index);
@@ -89,10 +96,10 @@ const App = () => {
     setBoard(newBoard);
     setPlayerMoves(newMoves);
     setCurrentPlayer(player === 1 ? 2 : 1);
-    playPop(); 
+    playPop();
   };
 
-  
+  // Reset game
   const resetGame = () => {
     setBoard(Array(9).fill(null));
     setCurrentPlayer(1);
@@ -100,7 +107,7 @@ const App = () => {
     setWinner(null);
     setPlayerCategories({ 1: null, 2: null });
     setShowCategorySelector(true);
-    playClick(); 
+    playClick();
   };
 
   return (

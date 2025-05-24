@@ -1,26 +1,47 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react'
 
-const useSound = (soundPath, { loop = false, volume = 1 } = {}) => {
-  const audioRef = useRef(null);
+const useSound = (url, { volume = 1, loop = false } = {}) => {
+  const [hasInteracted, setHasInteracted] = useState(false)
+  const audioRef = useRef(null)
+  const playRef = useRef(() => {})
 
-  try {
-    audioRef.current = new Audio(soundPath);
-    audioRef.current.loop = loop;
-    audioRef.current.volume = volume;
-  } catch (error) {
-    console.warn(`Failed to load audio: ${soundPath}`, error);
+  useEffect(() => {
+    audioRef.current = new Audio(url)
+    audioRef.current.volume = volume
+    audioRef.current.loop = loop
+    audioRef.current.preload = 'auto'
+
+    const handleInteraction = () => {
+      setHasInteracted(true)
+      window.removeEventListener('click', handleInteraction)
+      window.removeEventListener('touchstart', handleInteraction)
+    }
+
+    window.addEventListener('click', handleInteraction)
+    window.addEventListener('touchstart', handleInteraction)
+
+    return () => {
+      audioRef.current.pause()
+      window.removeEventListener('click', handleInteraction)
+      window.removeEventListener('touchstart', handleInteraction)
+    }
+  }, [url])
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+    }
+  }, [volume])
+
+  playRef.current = () => {
+    if (!hasInteracted) return
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch(() => {})
+    }
   }
 
-  const play = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch((error) => {
-        console.warn(`Audio playback failed for ${soundPath}:`, error);
-      });
-    }
-  };
+  return playRef.current
+}
 
-  return play;
-};
-
-export default useSound;
+export default useSound

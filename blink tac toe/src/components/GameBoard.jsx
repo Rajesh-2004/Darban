@@ -1,27 +1,42 @@
-import Tilt from 'react-parallax-tilt'
+import React from 'react';
+import Tilt from 'react-parallax-tilt';
+import CategorySelector from './CategorySelector.jsx';
 
-const GameBoard = ({ board, winner, handleCellClick }) => {
+const GameBoard = ({ board, winner, winningCells, handleCellClick, showCategorySelector, currentPlayer, onCategorySelect }) => {
   return (
-    <Tilt tiltMaxAngleX={20} tiltMaxAngleY={20} scale={1.05} className="w-full">
-      <div className="grid grid-cols-3 gap-3 bg-gray-950 bg-opacity-90 backdrop-blur-lg p-6 rounded-2xl border-2 border-neon-cyan animate-neon-flicker">
-        {board.map((cell, index) => (
-          <div
-            key={index}
-            className={`w-24 h-24 flex items-center justify-center text-5xl cursor-pointer bg-gray-700 bg-opacity-70 rounded-xl hover:bg-opacity-90 transition-all duration-300 ${winner && winner !== cell?.player ? 'opacity-50' : ''} relative overflow-hidden group border border-neon-pink`}
-            onClick={() => handleCellClick(index)}
-          >
-            {cell && (
-              <span className="animate-neon-trail group-hover:scale-110 transition-transform duration-300 text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">
-                {cell.emoji}
-              </span>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-r from-neon-pink to-neon-cyan opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-            <div className="absolute inset-0 ripple-effect pointer-events-none"></div>
-          </div>
-        ))}
-      </div>
-    </Tilt>
-  )
-}
+    <div className="board-wrapper">
+      <Tilt
+        tiltMaxAngleX={15}
+        tiltMaxAngleY={15}
+        glareEnable={true}
+        glareMaxOpacity={0.3}
+        glareColor="#ffffff"
+        glarePosition="all"
+        className="tilt-wrapper"
+      >
+        <div className={`game-board ${showCategorySelector ? 'dimmed' : ''}`}>
+          {board && board.map((cell, index) => (
+            <div
+              key={index}
+              className={`game-cell ${cell ? 'animate-scale-in' : ''} ${winningCells.includes(index) ? 'winning-cell' : ''}`}
+              onClick={() => !winner && !showCategorySelector && handleCellClick(index)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && !winner && !showCategorySelector && handleCellClick(index)}
+            >
+              {cell ? cell.emoji : ''}
+            </div>
+          ))}
+        </div>
+      </Tilt>
+      {showCategorySelector && (
+        <CategorySelector
+          player={currentPlayer}
+          onSelect={onCategorySelect}
+        />
+      )}
+    </div>
+  );
+};
 
-export default GameBoard
+export default GameBoard;

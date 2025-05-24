@@ -1,20 +1,22 @@
+import React from 'react';
+
 const HelpModal = ({ onClose }) => {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-xl flex items-center justify-center animate-fade-in">
-      <div className="bg-gray-950 bg-opacity-95 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border-2 border-neon-pink max-w-md w-full animate-spring-up">
-        <h2 className="text-3xl font-bold text-white mb-6 text-center animate-neon-flicker">How to Play</h2>
-        <p className="mb-3 text-white">1. Choose a name and emoji category for each player.</p>
-        <p className="mb-3 text-white">2. Take turns placing emojis on the 3x3 grid.</p>
-        <p className="mb-3 text-white">3. In Normal/Time Attack/Blitz modes, the oldest emoji vanishes after 3 moves (except in Classic mode).</p>
-        <p className="mb-3 text-white">4. Time Attack: 15s per turn. Blitz: 10s per turn with random emoji swaps.</p>
-        <p className="mb-3 text-white">5. Use power-ups: Freeze Time (5s pause) or Clear Cell (remove opponent's emoji).</p>
-        <p className="mb-3 text-white">6. Win by aligning 3 emojis in a row, column, or diagonal.</p>
-        <button className="btn-neon btn-neon-blue w-full mt-6" onClick={onClose}>
+    <div className="modal-overlay animate-fade-in">
+      <div className="modal animate-spring-up">
+        <h2 className="modal-title animate-neon-flicker">How to Play Blink Tac Toe</h2>
+        <p>1. Each player chooses an emoji category (e.g., Animals, Food).</p>
+        <p>2. Players take turns placing a random emoji from their category on the 3x3 grid.</p>
+        <p>3. Each player can have up to 3 emojis on the board. Placing a 4th emoji removes the oldest one (not in the same cell).</p>
+        <p>4. Win by aligning 3 of your emojis horizontally, vertically, or diagonally.</p>
+        <p>5. Use power-ups (optional): Freeze (pause opponent's time), Clear (remove opponent's emoji).</p>
+        <p>6. Modes: Normal (unlimited time), Time Attack (15s/turn), Blitz (10s/turn).</p>
+        <button className="btn-neon btn-neon-blue close-btn" onClick={onClose}>
           Close
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default HelpModal
+export default HelpModal;

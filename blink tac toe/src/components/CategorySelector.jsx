@@ -1,38 +1,49 @@
-import { useState } from 'react'
-import { emojiCategories } from '../constants.js'
+import React, { useState } from 'react';
+import { emojiCategories } from '../constants';
 
 const CategorySelector = ({ player, onSelect }) => {
-  const [name, setName] = useState(`Player ${player}`)
-  const categories = Object.keys(emojiCategories)
+  const [name, setName] = useState(`Player ${player}`);
+  const [category, setCategory] = useState(null);
+
+  const handleSubmit = () => {
+    if (category && onSelect) {
+      onSelect(player, category, name);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-xl flex items-center justify-center animate-fade-in z-50">
-      <div className="bg-gray-950 bg-opacity-95 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border border-neon-pink max-w-md w-full animate-spring-up">
-        <h2 className="text-3xl font-bold text-white mb-6 text-center animate-neon-flicker">
-          Player {player}: Choose Category
-        </h2>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={`Player ${player} Name`}
-          className="w-full p-3 mb-6 text-white bg-gray-800 border-2 border-neon-cyan rounded-lg focus:outline-none focus:ring-2 focus:ring-neon-pink"
-        />
-        <div className="grid grid-cols-2 gap-4">
-          {categories.map((category) => (
-            <button
-              key={category}
-              className="btn-neon btn-neon-purple flex items-center justify-center space-x-2"
-              onClick={() => onSelect(player, category, name)}
-            >
-              <span>{category.charAt(0).toUpperCase() + category.slice(1)}</span>
-              <span>{emojiCategories[category][0]}</span>
-            </button>
-          ))}
-        </div>
+    <div className="board-popup animate spring-up">
+      <h2 className="popup-title animate-neon-flicker">Player {player}: Choose Your Category</h2>
+      <input
+        type="text"
+        className="input-field"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder={`Enter name for Player ${player}`}
+        aria-label={`Enter name for Player ${player}`}
+      />
+      <div className="category-grid">
+        {Object.keys(emojiCategories).map((cat) => (
+          <button
+            key={cat}
+            className={`btn-neon btn-neon-cyan category-btn ${category === cat ? 'active' : ''}`}
+            onClick={() => setCategory(cat)}
+            aria-pressed={category === cat}
+          >
+            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+          </button>
+        ))}
       </div>
+      <button
+        className="btn-neon btn-neon-purple"
+        onClick={handleSubmit}
+        disabled={!category}
+        aria-disabled={!category}
+      >
+        Confirm
+      </button>
     </div>
-  )
-}
+  );
+};
 
-export default CategorySelector
+export default CategorySelector;

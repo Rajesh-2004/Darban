@@ -3,19 +3,19 @@ import { useState, useEffect } from 'react';
 const useLocalStorage = (key, initialValue) => {
   const [value, setValue] = useState(() => {
     try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : initialValue;
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.warn(`Error reading localStorage for ${key}:`, error);
+      console.error('Error reading localStorage:', error);
       return initialValue;
     }
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      window.localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.warn(`Error writing to localStorage for ${key}:`, error);
+      console.error('Error writing to localStorage:', error);
     }
   }, [key, value]);
 

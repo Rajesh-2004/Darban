@@ -1,112 +1,80 @@
-import { useState, useEffect } from 'react'
-import useSound from '../hooks/useSound.js'
+import React from 'react';
 
-const SettingsModal = ({ onClose, musicVolume, setMusicVolume, sfxVolume, setSfxVolume, gameMode, setGameMode, resetScores }) => {
-  const playClick = useSound('/sounds/click.mp3')
-  const [tempMusicVolume, setTempMusicVolume] = useState(musicVolume)
-  const [tempSfxVolume, setTempSfxVolume] = useState(sfxVolume)
-  const [musicMuted, setMusicMuted] = useState(musicVolume === 0)
-  const [sfxMuted, setSfxMuted] = useState(sfxVolume === 0)
+const SettingsModal = ({
+  onClose,
+  musicVolume,
+  setMusicVolume,
+  sfxVolume,
+  setSfxVolume,
+  gameMode,
+  setGameMode,
+  resetScores,
+}) => {
+  const handleMusicVolumeChange = (e) => {
+    const value = parseFloat(e.target.value);
+    console.log('Music volume changed:', value);
+    setMusicVolume(value);
+  };
 
-  useEffect(() => {
-    setTempMusicVolume(musicVolume)
-    setTempSfxVolume(sfxVolume)
-    setMusicMuted(musicVolume === 0)
-    setSfxMuted(sfxVolume === 0)
-  }, [musicVolume, sfxVolume])
-
-  const handleSave = () => {
-    setMusicVolume(musicMuted ? 0 : tempMusicVolume)
-    setSfxVolume(sfxMuted ? 0 : tempSfxVolume)
-    playClick()
-    onClose()
-  }
+  const handleSfxVolumeChange = (e) => {
+    const value = parseFloat(e.target.value);
+    console.log('SFX volume changed:', value);
+    setSfxVolume(value);
+  };
 
   const handleGameModeChange = (e) => {
-    setGameMode(e.target.value)
-    playClick()
-  }
-
-  const handleResetScores = () => {
-    resetScores()
-    playClick()
-  }
+    const value = e.target.value;
+    console.log('Game mode changed:', value);
+    setGameMode(value);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-xl flex items-center justify-center animate-fade-in">
-      <div className="bg-gray-950 bg-opacity-95 backdrop-blur-lg p-8 rounded-2xl shadow-2xl border-2 border-neon-pink max-w-md w-full animate-spring-up">
-        <h2 className="text-3xl font-bold text-white mb-6 text-center animate-neon-flicker">Settings</h2>
-        <div className="mb-6">
-          <label className="block text-lg font-medium text-white mb-2">Music Volume: {(musicMuted ? 0 : tempMusicVolume * 100).toFixed(0)}%</label>
-          <div className="relative w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-            <div className="absolute h-3 bg-gradient-to-r from-neon-pink to-neon-cyan" style={{ width: `${musicMuted ? 0 : tempMusicVolume * 100}%` }}></div>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={musicMuted ? 0 : tempMusicVolume}
-            onChange={(e) => setTempMusicVolume(parseFloat(e.target.value))}
-            className="w-full h-3 appearance-none bg-transparent focus:outline-none focus:ring-2 focus:ring-neon-cyan"
-          />
-          <label className="flex items-center mt-3 text-white">
+    <div className="modal-overlay animate-fade-in">
+      <div className="modal animate spring-up">
+        <h2 className="modal-title animate-neon-flicker">Settings</h2>
+        <div className="settings-content">
+          <label className="settings-label">
+            Music Volume: {(musicVolume * 100).toFixed(0)}%
             <input
-              type="checkbox"
-              checked={musicMuted}
-              onChange={() => setMusicMuted(!musicMuted)}
-              className="mr-2 accent-neon-cyan"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={musicVolume}
+              onChange={handleMusicVolumeChange}
+              className="slider"
             />
-            Mute Music
           </label>
-        </div>
-        <div className="mb-6">
-          <label className="block text-lg font-medium text-white mb-2">Sound Effects Volume: {(sfxMuted ? 0 : tempSfxVolume * 100).toFixed(0)}%</label>
-          <div className="relative w-full h-3 bg-gray-800 rounded-full overflow-hidden">
-            <div className="absolute h-3 bg-gradient-to-r from-neon-pink to-neon-cyan" style={{ width: `${sfxMuted ? 0 : tempSfxVolume * 100}%` }}></div>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={sfxMuted ? 0 : tempSfxVolume}
-            onChange={(e) => setTempSfxVolume(parseFloat(e.target.value))}
-            className="w-full h-3 appearance-none bg-transparent focus:outline-none focus:ring-2 focus:ring-neon-cyan"
-          />
-          <label className="flex items-center mt-3 text-white">
+          <label className="settings-label">
+            SFX Volume: {(sfxVolume * 100).toFixed(0)}%
             <input
-              type="checkbox"
-              checked={sfxMuted}
-              onChange={() => setSfxMuted(!sfxMuted)}
-              className="mr-2 accent-neon-cyan"
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={sfxVolume}
+              onChange={handleSfxVolumeChange}
+              className="slider"
             />
-            Mute Sound Effects
           </label>
+          <label className="settings-label">
+            Game Mode:
+            <select value={gameMode} onChange={handleGameModeChange} className="input-field">
+              <option value="normal">Normal</option>
+              <option value="timeAttack">Time Attack (15s)</option>
+              <option value="blitz">Blitz (10s)</option>
+            </select>
+          </label>
+          <button className="btn-neon btn-neon-red" onClick={resetScores}>
+            Reset Scores
+          </button>
         </div>
-        <div className="mb-6">
-          <label className="block text-lg font-medium text-white mb-2">Game Mode:</label>
-          <select value={gameMode} onChange={handleGameModeChange} className="w-full p-3 bg-gray-800 border-2 border-neon-cyan rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-neon-pink">
-            <option value="normal">Normal</option>
-            <option value="timeAttack">Time Attack (15s)</option>
-            <option value="blitz">Blitz (10s + Swap)</option>
-            <option value="classic">Classic (No Vanish)</option>
-          </select>
-        </div>
-        <button className="btn-neon btn-neon-red w-full mb-4" onClick={handleResetScores}>
-          Reset Scores
+        <button className="btn-neon btn-neon-blue close-btn" onClick={onClose}>
+          Close
         </button>
-        <div className="flex space-x-4">
-          <button className="btn-neon btn-neon-purple flex-1" onClick={handleSave}>
-            Save
-          </button>
-          <button className="btn-neon btn-neon-blue flex-1" onClick={() => { onClose(); playClick(); }}>
-            Close
-          </button>
-        </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SettingsModal
+export default SettingsModal;

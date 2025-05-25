@@ -4,8 +4,6 @@ const Navbar = ({
   setShowHelp,
   setShowSettings,
   setShowLeaderboard,
-  toggleMute,
-  isMuted,
   resetGame,
 }) => {
   return (
@@ -39,13 +37,6 @@ const Navbar = ({
             title="Leaderboard"
           >
             <span className="icon">🏆</span> Leaderboard
-          </button>
-          <button
-            className="nav-neon nav-neon-green"
-            onClick={toggleMute}
-            title={isMuted ? 'Unmute' : 'Mute'}
-          >
-            <span className="icon">{isMuted ? '🔇' : '🔊'}</span> {isMuted ? 'Unmute' : 'Mute'}
           </button>
         </div>
       </div>

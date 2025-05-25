@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const useSound = (url, options = {}) => {
   const audioRef = useRef(null);
   const playAttempts = useRef(0);
   const maxPlayAttempts = 3;
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     console.log(`Initializing audio: ${url}`);
@@ -14,6 +15,7 @@ const useSound = (url, options = {}) => {
 
     const handleCanPlay = () => {
       console.log(`Audio ${url} can play through`);
+      setIsReady(true);
     };
 
     const handleLoadedData = () => {
@@ -22,6 +24,10 @@ const useSound = (url, options = {}) => {
 
     const handleError = (e) => {
       console.error(`Audio ${url} failed to load:`, e);
+      if (audioRef.current && audioRef.current.error) {
+        console.error(`Error code: ${audioRef.current.error.code}, message: ${audioRef.current.error.message}`);
+      }
+      setIsReady(false);
     };
 
     audioRef.current.addEventListener('canplaythrough', handleCanPlay);
@@ -59,7 +65,8 @@ const useSound = (url, options = {}) => {
       if (newVolume === 0) {
         audioRef.current.pause();
         console.log(`Paused ${url} due to zero volume`);
-      } else if (audioRef.current.paused && options.loop) {
+      } else if (audioRef.current.paused && options.loop && playAttempts.current < maxPlayAttempts) {
+        console.log(`Resuming ${url} due to non-zero volume`);
         audioRef.current.play().catch((error) => {
           console.error(`Failed to resume ${url}:`, error);
         });
@@ -70,36 +77,41 @@ const useSound = (url, options = {}) => {
   const play = () => {
     if (!audioRef.current) {
       console.warn(`Audio ${url} not initialized`);
-      return;
+      return Promise.resolve(false);
     }
 
     if (playAttempts.current >= maxPlayAttempts) {
       console.warn(`Max play attempts reached for ${url}`);
-      return;
+      return Promise.resolve(false);
     }
 
     if (audioRef.current.volume === 0) {
       console.log(`Audio ${url} not played, volume is 0`);
-      return;
+      return Promise.resolve(false);
     }
 
-    console.log(`Attempting to play ${url}`);
-    audioRef.current.play()
+    console.log(`Attempting to play ${url}, readyState: ${audioRef.current.readyState}, networkState: ${audioRef.current.networkState}`);
+    return audioRef.current.play()
       .then(() => {
         console.log(`Successfully playing ${url}`);
         playAttempts.current = 0;
+        return true;
       })
       .catch((error) => {
         console.error(`Failed to play ${url}:`, error);
+        if (audioRef.current && audioRef.current.error) {
+          console.error(`Error code: ${audioRef.current.error.code}, message: ${audioRef.current.error.message}`);
+        }
         playAttempts.current += 1;
         if (playAttempts.current < maxPlayAttempts) {
           console.log(`Retrying play for ${url}, attempt ${playAttempts.current + 1}`);
           setTimeout(() => play(), 500);
         }
+        return false;
       });
   };
 
-  return play;
+  return { play, isReady };
 };
 
 export default useSound;

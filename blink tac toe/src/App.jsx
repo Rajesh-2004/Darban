@@ -12,14 +12,15 @@ import './App.css';
 const App = () => {
   const [board, setBoard] = useState(Array(9).fill(null));
   const [currentPlayer, setCurrentPlayer] = useState(1);
-  const [playerCategories, setPlayerCategories] = useState({ 1: null, 2: null });
-  const [playerNames, setPlayerNames] = useState({ 1: 'Player 1', 2: 'Player 2' });
+  const [playerCategories, setPlayerCategories] = useLocalStorage('playerCategories', { 1: null, 2: null });
+  const [playerNames, setPlayerNames] = useLocalStorage('playerNames', { 1: 'Player 1', 2: 'Player 2' });
   const [playerMoves, setPlayerMoves] = useState({ 1: [], 2: [] });
   const [winner, setWinner] = useState(null);
   const [winningCells, setWinningCells] = useState([]);
+  const [isDraw, setIsDraw] = useState(false);
   const [scores, setScores] = useLocalStorage('scores', { 1: 0, 2: 0 });
   const [leaderboard, setLeaderboard] = useLocalStorage('leaderboard', []);
-  const [showCategorySelector, setShowCategorySelector] = useState(true);
+  const [showCategorySelector, setShowCategorySelector] = useState(!playerCategories[1]);
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -29,27 +30,53 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(15);
   const [powerUps, setPowerUps] = useState({ 1: { freeze: true, clear: true }, 2: { freeze: true, clear: true } });
   const [isFrozen, setIsFrozen] = useState(false);
-  const [isMuted, setIsMuted] = useLocalStorage('isMuted', false);
   const [showEmojiExplosion, setShowEmojiExplosion] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
-  const playPop = useSound('/sounds/pop.mp3', { volume: isMuted ? 0 : sfxVolume });
-  const playWhoosh = useSound('/sounds/whoosh.mp3', { volume: isMuted ? 0 : sfxVolume });
-  const playWin = useSound('/sounds/win.mp3', { volume: isMuted ? 0 : sfxVolume });
-  const playClick = useSound('/sounds/click.mp3', { volume: isMuted ? 0 : sfxVolume });
-  const playReset = useSound('/sounds/reset.mp3', { volume: isMuted ? 0 : sfxVolume });
-  const playInvalid = useSound('/sounds/invalid.mp3', { volume: isMuted ? 0 : sfxVolume });
-  const playBackground = useSound('/sounds/background.mp3', { loop: true, volume: isMuted ? 0 : musicVolume });
+  const { play: playPop } = useSound('/sounds/pop.mp3', { volume: sfxVolume });
+  const { play: playWhoosh } = useSound('/sounds/whoosh.mp3', { volume: sfxVolume });
+  const { play: playWin, isReady: winSoundReady } = useSound('/sounds/win.mp3', { volume: sfxVolume });
+  const { play: playClick, isReady: clickSoundReady } = useSound('/sounds/click.mp3', { volume: sfxVolume });
+  const { play: playReset } = useSound('/sounds/reset.mp3', { volume: sfxVolume });
+  const { play: playInvalid } = useSound('/sounds/invalid.mp3', { volume: sfxVolume });
+  const { play: playBackground } = useSound('/sounds/background.mp3', { loop: true, volume: musicVolume });
 
   useEffect(() => {
     const handleInteraction = () => {
       if (!hasInteracted) {
-        console.log('User interaction detected, attempting to play background music');
+        console.log('User interaction detected, enabling audio playback');
         setHasInteracted(true);
-        if (!isMuted && musicVolume > 0) {
+        // Unlock audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(0, audioContext.currentTime);
+        oscillator.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.01);
+        console.log('Audio context unlocked');
+        audioContext.close();
+        // Preload win.mp3 and click.mp3
+        const winAudio = new Audio('/sounds/win.mp3');
+        const clickAudio = new Audio('/sounds/click.mp3');
+        winAudio.preload = 'auto';
+        clickAudio.preload = 'auto';
+        const handleWinCanPlay = () => console.log('Win.mp3 preloaded and ready');
+        const handleClickCanPlay = () => console.log('Click.mp3 preloaded and ready');
+        winAudio.addEventListener('canplaythrough', handleWinCanPlay);
+        clickAudio.addEventListener('canplaythrough', handleClickCanPlay);
+        winAudio.load();
+        clickAudio.load();
+        if (musicVolume > 0) {
           playBackground();
           console.log('playBackground called, volume:', musicVolume);
         }
+        return () => {
+          winAudio.removeEventListener('canplaythrough', handleWinCanPlay);
+          clickAudio.removeEventListener('canplaythrough', handleClickCanPlay);
+        };
       }
     };
     window.addEventListener('click', handleInteraction);
@@ -58,17 +85,32 @@ const App = () => {
       window.removeEventListener('click', handleInteraction);
       window.removeEventListener('touchstart', handleInteraction);
     };
-  }, [hasInteracted, isMuted, musicVolume, playBackground]);
+  }, [hasInteracted, musicVolume, playBackground]);
 
   useEffect(() => {
-    console.log('Sound settings updated', { isMuted, musicVolume, sfxVolume });
-    if (hasInteracted && !isMuted && musicVolume > 0) {
-      playBackground();
+    console.log('Sound settings updated', { musicVolume, sfxVolume });
+    if (hasInteracted) {
+      if (musicVolume > 0) {
+        playBackground();
+      } else {
+        console.log('Background music volume is 0, pausing');
+      }
+      if (sfxVolume > 0 && clickSoundReady) {
+        playClick();
+      }
     }
-  }, [isMuted, musicVolume, sfxVolume, hasInteracted, playBackground]);
+  }, [musicVolume, sfxVolume, hasInteracted, playBackground, playClick, clickSoundReady]);
 
   useEffect(() => {
-    if (gameMode !== 'timeAttack' && gameMode !== 'blitz' || winner || showCategorySelector || isFrozen) return;
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (gameMode !== 'timeAttack' && gameMode !== 'blitz' || winner || isDraw || showCategorySelector || isFrozen) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -79,10 +121,10 @@ const App = () => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [gameMode, winner, showCategorySelector, isFrozen, currentPlayer]);
+  }, [gameMode, winner, isDraw, showCategorySelector, isFrozen, currentPlayer]);
 
   useEffect(() => {
-    if (winner) return;
+    if (winner || isDraw) return;
     for (const combo of winCombinations) {
       const [a, b, c] = combo;
       if (
@@ -108,11 +150,55 @@ const App = () => {
             .sort((x, y) => y.score - x.score)
             .slice(0, 5);
         });
-        playWin();
+        setShowConfetti(true);
+        console.log('Win detected', { player: board[a].player, sfxVolume, hasInteracted, winSoundReady });
+        if ('vibrate' in navigator) {
+          navigator.vibrate([100, 50, 100]);
+        }
         return;
       }
     }
-  }, [board, playerNames, scores, setScores, setLeaderboard, playWin, winner]);
+    if (board.every((cell) => cell !== null) && !winner) {
+      setIsDraw(true);
+      setShowConfetti(true);
+      console.log('Draw detected', { sfxVolume, hasInteracted, winSoundReady });
+      if ('vibrate' in navigator) {
+        navigator.vibrate([100, 50, 100]);
+      }
+    }
+  }, [board, playerNames, scores, setScores, setLeaderboard, winner, isDraw, hasInteracted, sfxVolume, winSoundReady]);
+
+  useEffect(() => {
+    if (showConfetti && (winner || isDraw)) {
+      console.log('Confetti triggered, duration: 2000ms');
+      const confettiTimeout = setTimeout(() => {
+        setShowConfetti(false);
+        console.log('Confetti stopped');
+      }, 2000);
+      return () => clearTimeout(confettiTimeout);
+    }
+  }, [showConfetti, winner, isDraw]);
+
+  useEffect(() => {
+    if (winner || isDraw) {
+      console.log('Winner popup triggered', { sfxVolume, hasInteracted, winSoundReady });
+      if (hasInteracted && sfxVolume > 0 && winSoundReady) {
+        playWin().then((success) => {
+          console.log(success ? 'playWin succeeded for popup' : 'playWin failed for popup');
+          if (!success && clickSoundReady) {
+            playClick();
+            console.log('Fallback: playClick called for popup');
+          }
+        });
+      } else {
+        console.log('playWin skipped for popup', { hasInteracted, sfxVolume, winSoundReady });
+        if (hasInteracted && sfxVolume > 0 && clickSoundReady) {
+          playClick();
+          console.log('Fallback: playClick called for popup');
+        }
+      }
+    }
+  }, [winner, isDraw, hasInteracted, sfxVolume, playWin, winSoundReady, playClick, clickSoundReady]);
 
   const getRandomEmoji = (player) => {
     const category = playerCategories[player] || 'animals';
@@ -120,9 +206,9 @@ const App = () => {
     return emojis[Math.floor(Math.random() * emojis.length)];
   };
 
-  const handleCategorySelect = (player, category, name) => {
+  const handleCategorySelect = (player, category) => {
     setPlayerCategories((prev) => ({ ...prev, [player]: category }));
-    setPlayerNames((prev) => ({ ...prev, [player]: name || `Player ${player}` }));
+    setPlayerNames((prev) => ({ ...prev, [player]: `Player ${player}` }));
     if (player === 1) {
       setShowCategorySelector(true);
       setCurrentPlayer(2);
@@ -138,6 +224,7 @@ const App = () => {
     if (
       board[index] ||
       winner ||
+      isDraw ||
       !playerCategories[1] ||
       !playerCategories[2] ||
       showCategorySelector ||
@@ -169,6 +256,9 @@ const App = () => {
     setCurrentPlayer(player === 1 ? 2 : 1);
     setTimeLeft(gameMode === 'blitz' ? 10 : 15);
     playPop();
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
   };
 
   const handleFreezeTime = () => {
@@ -212,11 +302,11 @@ const App = () => {
     setPlayerMoves({ 1: [], 2: [] });
     setWinner(null);
     setWinningCells([]);
-    setPlayerCategories({ 1: null, 2: null });
-    setPlayerNames({ 1: 'Player 1', 2: 'Player 2' });
-    setShowCategorySelector(true);
+    setIsDraw(false);
+    setShowCategorySelector(!playerCategories[1]);
     setTimeLeft(gameMode === 'blitz' ? 10 : 15);
     setPowerUps({ 1: { freeze: true, clear: true }, 2: { freeze: true, clear: true } });
+    setShowConfetti(false);
     playReset();
   };
 
@@ -226,31 +316,32 @@ const App = () => {
     playClick();
   };
 
-  const toggleMute = () => {
-    setIsMuted((prev) => {
-      console.log('Toggling mute, new state:', !prev);
-      return !prev;
-    });
+  const resetPlayers = () => {
+    setPlayerNames({ 1: 'Player 1', 2: 'Player 2' });
+    setPlayerCategories({ 1: null, 2: null });
+    setShowCategorySelector(true);
     playClick();
   };
 
   return (
-    <div className="min-h-screen bg-gradient animate-fade-in" onClick={() => setHasInteracted(true)}>
+    <div className="min-h-screen bg-gradient animate-gradient-shift" onClick={() => setHasInteracted(true)}>
       <Navbar
         setShowHelp={setShowHelp}
         setShowSettings={setShowSettings}
         setShowLeaderboard={setShowLeaderboard}
-        toggleMute={toggleMute}
-        isMuted={isMuted}
         resetGame={resetGame}
       />
       <div className="radial-overlay"></div>
-      {winner && (
+      {showConfetti && (
         <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
+          width={windowSize.width}
+          height={windowSize.height}
+          numberOfPieces={200}
           recycle={false}
-          numberOfPieces={300}
+          run={true}
+          gravity={0.3}
+          initialVelocityY={-10}
+          tweenDuration={2000}
           colors={['#ff3399', '#00e6e6', '#ffffff']}
         />
       )}
@@ -268,7 +359,7 @@ const App = () => {
         </div>
         <p className={`player-turn ${currentPlayer === 1 ? 'text-neon-cyan' : 'text-neon-pink'}`}>
           <span className="player-name">{playerNames[currentPlayer]}</span>
-          {(gameMode === 'timeAttack' || gameMode === 'blitz') && !winner && !showCategorySelector && !isFrozen && (
+          {(gameMode === 'timeAttack' || gameMode === 'blitz') && !winner && !isDraw && !showCategorySelector && !isFrozen && (
             <span className="timer">| Time: {timeLeft}s</span>
           )}
           <span className="underline animate-neon-underline"></span>
@@ -294,16 +385,17 @@ const App = () => {
             board={board}
             winner={winner}
             winningCells={winningCells}
+            isDraw={isDraw}
             handleCellClick={handleCellClick}
             showCategorySelector={showCategorySelector}
             currentPlayer={currentPlayer}
             onCategorySelect={handleCategorySelect}
           />
         </div>
-        {winner && (
-          <div className="winner-message animate spring-up">
+        {(winner || isDraw) && (
+          <div className={`winner-message animate spring-up ${isDraw ? 'draw-message' : ''}`}>
             <p className="winner-text animate-neon-flicker">
-              {playerNames[winner]} Wins!
+              {isDraw ? 'Draw!' : `${playerNames[winner]} Wins!`}
             </p>
             <button
               className="btn-neon btn-neon-cyan play-again-btn animate-fade-in"
@@ -324,6 +416,7 @@ const App = () => {
             gameMode={gameMode}
             setGameMode={setGameMode}
             resetScores={resetScores}
+            resetPlayers={resetPlayers}
           />
         )}
         {showLeaderboard && (

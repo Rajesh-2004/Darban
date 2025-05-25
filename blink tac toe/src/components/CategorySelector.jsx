@@ -14,14 +14,7 @@ const CategorySelector = ({ player, onSelect }) => {
   return (
     <div className="board-popup animate spring-up">
       <h2 className="popup-title animate-neon-flicker">Player {player}: Choose Your Category</h2>
-      <input
-        type="text"
-        className="input-field"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder={`Enter name for Player ${player}`}
-        aria-label={`Enter name for Player ${player}`}
-      />
+      
       <div className="category-grid">
         {Object.keys(emojiCategories).map((cat) => (
           <button
